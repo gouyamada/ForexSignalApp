@@ -4,7 +4,6 @@
 # Gradleの内部キャッシュ
 .gradle/
 app/build/
-app/build/
 **/build/
 
 # Kotlin / KSP コンパイラキャッシュ

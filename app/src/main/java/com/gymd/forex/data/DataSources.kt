@@ -303,10 +303,24 @@ class ForexRepository(
     suspend fun getMacroIndicators(): MacroIndicators = withContext(Dispatchers.IO) {
         val ttl = 60 * 60 * 1000L // 1時間キャッシュ
 
-        // 2年債、10年債、DXYの各キャッシュ確認＆取得
-        val us02y = getMacroSeriesCached("US02Y", ttl)
-        val us10y = getMacroSeriesCached("US10Y", ttl)
-        val dxy   = getMacroSeriesCached("DXY", ttl)
+        // 2年債("US2Y"), 10年債("US10Y"), DXYの各キャッシュ確認＆取得（404等の例外発生時はキャッシュまたはデフォルトへフォールバック）
+        val us02y = try {
+            getMacroSeriesCached("US2Y", ttl)
+        } catch (_: Exception) {
+            getValidCache("US2Y", "1h", Long.MAX_VALUE)?.let { Pair(it.price, it.ema20) } ?: Pair(0.0, 0.0)
+        }
+
+        val us10y = try {
+            getMacroSeriesCached("US10Y", ttl)
+        } catch (_: Exception) {
+            getValidCache("US10Y", "1h", Long.MAX_VALUE)?.let { Pair(it.price, it.ema20) } ?: Pair(0.0, 0.0)
+        }
+
+        val dxy = try {
+            getMacroSeriesCached("DXY", ttl)
+        } catch (_: Exception) {
+            getValidCache("DXY", "1h", Long.MAX_VALUE)?.let { Pair(it.price, it.ema20) } ?: Pair(0.0, 0.0)
+        }
 
         MacroIndicators(
             us02yCurrent = us02y.first,
