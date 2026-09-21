@@ -1,0 +1,71 @@
+# ==========================================
+# 1. ビルド成果物・一時キャッシュ (Build & Caches)
+# ==========================================
+# Gradleの内部キャッシュ
+.gradle/
+app/build/
+app/build/
+**/build/
+
+# Kotlin / KSP コンパイラキャッシュ
+.kotlin/
+.ksp/
+
+# ==========================================
+# 2. 機密情報・APIキー・ローカル設定 (Secrets & Local Config)
+# ==========================================
+# Twelve Data APIキーやローカルAndroid SDKパスを含む最重要ファイル
+local.properties
+
+# Google Services（Firebase等を使用する場合の秘密鍵）
+google-services.json
+
+# リリース署名用キーストアファイル（公開厳禁）
+*.jks
+*.keystore
+
+# 環境変数・シークレットファイル
+.env
+.env.*
+secring.gpg
+
+# ==========================================
+# 3. Android Studio / IntelliJ IDEA 固有設定 (IDE Settings)
+# ==========================================
+.idea/
+*.iml
+app/*.iml
+.navigation/
+
+# プロジェクト内のコードスタイル等の共有設定のみ保持したい場合の個別除外
+.idea/caches
+.idea/libraries
+.idea/modules.xml
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/shelf/
+.idea/assetWizardSettings.xml
+
+# ==========================================
+# 4. OS固有の一時ファイル (OS Generated Files)
+# ==========================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# ==========================================
+# 5. ログ・キャプチャファイル (Logs & Captures)
+# ==========================================
+*.log
+captures/
+.externalNativeBuild/
+.cxx/

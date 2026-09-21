@@ -1,0 +1,83 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 1. サイバーパンク風のヘキサゴンベース（クオンツ・AI分析の象徴） -->
+    <path
+        android:strokeWidth="1.5"
+        android:strokeColor="#1E2638"
+        android:strokeLineJoin="round"
+        android:pathData="M 54,14 L 90,34 L 90,74 L 54,94 L 18,74 L 18,34 Z" />
+
+    <!-- ヘキサゴン内部の解析レーダーグリッド -->
+    <path
+        android:strokeWidth="0.5"
+        android:strokeColor="#1E2638"
+        android:pathData="M 18,34 L 90,74 M 18,74 L 90,34 M 54,14 L 54,94" />
+
+    <!-- 2. 過去のボラティリティを示すシャドウキャンドル（背景） -->
+    <path
+        android:fillColor="#151B26"
+        android:strokeWidth="1"
+        android:strokeColor="#232B3B"
+        android:pathData="M31,48 h6 v18 h-6 z M34,42 v30 M51,58 h6 v22 h-6 z M54,50 v38" />
+
+    <!-- 3. メインのローソク足（現在価格のアクション） -->
+    <!-- ショート/下降足（クリムゾンレッド） -->
+    <path
+        android:fillColor="#FF3D57"
+        android:pathData="M46,42 h8 v16 h-8 z" />
+    <path
+        android:strokeWidth="2"
+        android:strokeColor="#FF3D57"
+        android:strokeLineCap="round"
+        android:pathData="M50,32 v34" />
+
+    <!-- ロング/上昇足（エメラルドグリーン） -->
+    <path
+        android:fillColor="#00E676"
+        android:pathData="M66,28 h8 v24 h-8 z" />
+    <path
+        android:strokeWidth="2"
+        android:strokeColor="#00E676"
+        android:strokeLineCap="round"
+        android:pathData="M70,18 v46" />
+
+    <!-- 4. ダイナミックな多層トレンドライン（MTFカスケードを表現） -->
+    <!-- トレンドラインの影（立体感を出すためのアンダーグロー） -->
+    <path
+        android:strokeWidth="5"
+        android:strokeColor="#006064"
+        android:strokeLineCap="round"
+        android:pathData="M 20,82 C 40,82 48,58 70,54 C 82,52 88,40 94,30" />
+
+    <!-- 発光するメインのアルゴリズムライン（シアンからグリーンへのグラデーション） -->
+    <path
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M 20,78 C 42,78 46,48 72,44 C 82,42 88,30 96,20">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="20" android:startY="78"
+                android:endX="96" android:endY="20"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#00B0FF" />
+                <item android:offset="0.5" android:color="#00E676" />
+                <item android:offset="1.0" android:color="#B2FF59" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 5. ブレイクアウトを示すスパークリング・ノード（先端のコア発光） -->
+    <!-- 外側のぼかし効果（擬似的なグロー） -->
+    <path
+        android:fillColor="#4DFFFFFF"
+        android:pathData="M96,20 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+    <!-- 中心点 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M96,20 m-2,0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+</vector>
