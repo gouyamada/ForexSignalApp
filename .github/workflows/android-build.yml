@@ -1,0 +1,53 @@
+name: Android Build & Verify
+
+# mainブランチへのプッシュおよびプルリクエスト作成時に自動実行
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+  # 手動実行（Actionsタブからボタン押下での実行）も許可
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. リポジトリのソースコードをチェックアウト
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      # 2. JDK 17 のセットアップ
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      # 3. Gradle Wrapper の実行権限を付与
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # 4. GitHub Secrets から local.properties を一時生成
+      # （BuildConfig へのキー注入とビルド成功のため）
+      - name: Generate local.properties for CI
+        env:
+          TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
+        run: |
+          echo "TWELVE_DATA_API_KEY=\"$TWELVE_DATA_API_KEY\"" > local.properties
+
+      # 5. Debug用 APK のビルドとコンパイル検証
+      - name: Build Debug APK with Gradle
+        run: ./gradlew assembleDebug --stacktrace
+
+      # 6. 生成された APK を Artifact（成果物）としてアップロード保存
+      # （Actions の実行ログ画面から直接ダウンロード可能になります）
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7
