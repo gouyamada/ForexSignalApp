@@ -20,7 +20,7 @@ import java.util.Locale
 class ForexSignalViewModel(
     private val repository: ForexRepository,
     private val mtfEvaluator: CascadeMTFEvaluator = CascadeMTFEvaluator(),
-    private val macroEvaluator: MacroEvaluator = MacroEvaluator()
+    private val macroEvaluator: MacroEvaluator = MacroEvaluator(),
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ForexDashboardUiState())
@@ -71,7 +71,7 @@ class ForexSignalViewModel(
                         TimeFrameStatus("日足 (D1)", finalMtfResult.dailyBias, d1Cache.isCached, d1Cache.ttlRemainingText),
                         TimeFrameStatus("8時間足 (8H)", finalMtfResult.h8Bias, h8Cache.isCached, h8Cache.ttlRemainingText),
                         TimeFrameStatus("4時間足 (4H)", finalMtfResult.h4Bias, h4Cache.isCached, h4Cache.ttlRemainingText),
-                        TimeFrameStatus("15分足 (15M)", finalMtfResult.m15Decision.toBias(), m15Cache.isCached, m15Cache.ttlRemainingText)
+                        TimeFrameStatus("15分足 (15M)", finalMtfResult.m15Decision.toBias(), m15Cache.isCached, m15Cache.ttlRemainingText),
                     )
 
                     // 6. 更新完了時刻の文字列生成
@@ -86,7 +86,7 @@ class ForexSignalViewModel(
                             mtfResult = finalMtfResult,
                             macroResult = macroAnalysis,
                             timeFrameStatuses = statuses,
-                            lastUpdatedTime = currentTimeStr
+                            lastUpdatedTime = currentTimeStr,
                         )
                     }
                 }
@@ -95,7 +95,7 @@ class ForexSignalViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = "シグナル解析に失敗いたしました: ${e.localizedMessage ?: "通信エラー"}"
+                        errorMessage = "シグナル解析に失敗いたしました: ${e.localizedMessage ?: "通信エラー"}",
                     )
                 }
             }

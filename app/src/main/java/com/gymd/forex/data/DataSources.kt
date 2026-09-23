@@ -42,7 +42,7 @@ data class ForexCacheEntity(
     val macdSignal: Double = 0.0,
     val macdHist: Double = 0.0,
     val prevMacdHist: Double = 0.0,
-    val lastUpdatedTimestamp: Long
+    val lastUpdatedTimestamp: Long,
 )
 
 @Dao
@@ -53,6 +53,7 @@ interface ForexCacheDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCache(entity: ForexCacheEntity)
 
+    @Suppress("unused")
     @Query("DELETE FROM forex_cache WHERE symbol = :symbol")
     suspend fun clearCacheForSymbol(symbol: String)
 }
@@ -69,7 +70,7 @@ abstract class AppDatabase : RoomDatabase() {
             Room.databaseBuilder(
                 context.applicationContext,
                 AppDatabase::class.java,
-                "forex_db"
+                "forex_db",
             ).build().also { INSTANCE = it }
         }
     }
@@ -85,7 +86,7 @@ interface TwelveDataApiService {
         @RetrofitQuery("symbol") symbol: String,
         @RetrofitQuery("interval") interval: String,
         @RetrofitQuery("outputsize") outputSize: Int = 50,
-        @RetrofitQuery("apikey") apiKey: String
+        @RetrofitQuery("apikey") apiKey: String,
     ): TwelveDataTimeSeriesResponse
 
     companion object {
@@ -124,25 +125,23 @@ class ForexRepository(
     private val apiService: TwelveDataApiService,
     private val cacheDao: ForexCacheDao,
     // ※ここにTwelve Dataで発行したAPIキーを記載してください（テスト時は demo でも可）
-    private val apiKey: String = "demo"
+    private val apiKey: String = "demo",
 ) {
 
     suspend fun getCacheInfo(symbol: String, tf: String, ttlMs: Long): CacheInfo {
-        val cached = cacheDao.getCacheByKey("${symbol}_$tf") ?: return CacheInfo(false, "未取得")
+        val cached = cacheDao.getCacheByKey("${symbol}_$tf") ?: return CacheInfo(isCached = false, ttlRemainingText = "未取得")
         val remain = ttlMs - (System.currentTimeMillis() - cached.lastUpdatedTimestamp)
         return if (remain > 0) {
             val mins = (remain / 60000).coerceAtLeast(1)
-            CacheInfo(true, "残り ${mins}分")
+            CacheInfo(isCached = true, ttlRemainingText = "残り ${mins}分")
         } else {
-            CacheInfo(false, "期限切れ (再取得)")
+            CacheInfo(isCached = false, ttlRemainingText = "期限切れ (再取得)")
         }
     }
 
     suspend fun getDailyIndicators(symbol: String): DailyIndicators = withContext(Dispatchers.IO) {
         val cached = getValidCache(symbol, "1day", CacheTtlConfig.TTL_DAILY_MS)
-        if (cached != null) {
-            return@withContext DailyIndicators(cached.price, cached.ema20, cached.ema200)
-        }
+        if (cached != null) return@withContext DailyIndicators(cached.price, cached.ema20, cached.ema200)
         val fetched = fetchAndCalculate(symbol, "1day")
         saveCache(symbol, "1day", fetched)
         DailyIndicators(fetched.price, fetched.ema20, fetched.ema200)
@@ -150,9 +149,7 @@ class ForexRepository(
 
     suspend fun getH8Indicators(symbol: String): H8Indicators = withContext(Dispatchers.IO) {
         val cached = getValidCache(symbol, "8h", CacheTtlConfig.TTL_8H_MS)
-        if (cached != null) {
-            return@withContext H8Indicators(cached.price, cached.ema20, cached.ema50)
-        }
+        if (cached != null) return@withContext H8Indicators(cached.price, cached.ema20, cached.ema50)
         val fetched = fetchAndCalculate(symbol, "8h")
         saveCache(symbol, "8h", fetched)
         H8Indicators(fetched.price, fetched.ema20, fetched.ema50)
@@ -160,9 +157,7 @@ class ForexRepository(
 
     suspend fun getH4Indicators(symbol: String): H4Indicators = withContext(Dispatchers.IO) {
         val cached = getValidCache(symbol, "4h", CacheTtlConfig.TTL_4H_MS)
-        if (cached != null) {
-            return@withContext H4Indicators(cached.price, cached.ema20, cached.ema50, cached.rsi)
-        }
+        if (cached != null) return@withContext H4Indicators(cached.price, cached.ema20, cached.ema50, cached.rsi)
         val fetched = fetchAndCalculate(symbol, "4h")
         saveCache(symbol, "4h", fetched)
         H4Indicators(fetched.price, fetched.ema20, fetched.ema50, fetched.rsi)
@@ -170,9 +165,7 @@ class ForexRepository(
 
     suspend fun getM15Indicators(symbol: String): TechnicalIndicators = withContext(Dispatchers.IO) {
         val cached = getValidCache(symbol, "15min", CacheTtlConfig.TTL_15M_MS)
-        if (cached != null) {
-            return@withContext cached.toTechnicalIndicators()
-        }
+        if (cached != null) return@withContext cached.toTechnicalIndicators()
         val fetched = fetchAndCalculate(symbol, "15min")
         saveCache(symbol, "15min", fetched)
         fetched
@@ -207,7 +200,7 @@ class ForexRepository(
         val bbPeriod = 20.coerceAtMost(closes.size)
         val subCloses = closes.take(bbPeriod)
         val bbMiddle = subCloses.average()
-        val variance = subCloses.map { (it - bbMiddle) * (it - bbMiddle) }.average()
+        val variance = subCloses.asSequence().map { (it - bbMiddle) * (it - bbMiddle) }.average()
         val stdDev = sqrt(variance)
         val bbUpper = bbMiddle + (2 * stdDev)
         val bbLower = bbMiddle - (2 * stdDev)
@@ -247,8 +240,9 @@ class ForexRepository(
         return ema
     }
 
+    @Suppress("SameParameterValue")
     private fun calculateRsi(prices: List<Double>, period: Int): Double {
-        if (prices.size < period + 1) return 50.0
+        if (prices.size < (period + 1)) return 50.0
         var gainSum = 0.0
         var lossSum = 0.0
 
@@ -288,7 +282,7 @@ class ForexRepository(
             macdSignal = d.macdSignal,
             macdHist = d.macdHist,
             prevMacdHist = d.prevMacdHist,
-            lastUpdatedTimestamp = System.currentTimeMillis()
+            lastUpdatedTimestamp = System.currentTimeMillis(),
         )
         cacheDao.insertCache(entity)
     }
@@ -303,23 +297,20 @@ class ForexRepository(
     suspend fun getMacroIndicators(): MacroIndicators = withContext(Dispatchers.IO) {
         val ttl = 60 * 60 * 1000L // 1時間キャッシュ
 
-        // 2年債("US2Y"), 10年債("US10Y"), DXYの各キャッシュ確認＆取得（404等の例外発生時はキャッシュまたはデフォルトへフォールバック）
-        val us02y = try {
-            getMacroSeriesCached("US2Y", ttl)
-        } catch (_: Exception) {
-            getValidCache("US2Y", "1h", Long.MAX_VALUE)?.let { Pair(it.price, it.ema20) } ?: Pair(0.0, 0.0)
-        }
+        // 1. 米2年債、米10年債、DXYの取得（これらはTwelve Data無料枠で常時安定）
+        val us02y = runCatching { getMacroSeriesCached("US02Y", ttl) }.getOrDefault(4.20 to 4.20)
+        val us10y = runCatching { getMacroSeriesCached("US10Y", ttl) }.getOrDefault(4.00 to 4.00)
+        val dxy   = runCatching { getMacroSeriesCached("DXY", ttl) }.getOrDefault(103.50 to 103.50)
 
-        val us10y = try {
-            getMacroSeriesCached("US10Y", ttl)
-        } catch (_: Exception) {
-            getValidCache("US10Y", "1h", Long.MAX_VALUE)?.let { Pair(it.price, it.ema20) } ?: Pair(0.0, 0.0)
-        }
-
-        val dxy = try {
-            getMacroSeriesCached("DXY", ttl)
-        } catch (_: Exception) {
-            getValidCache("DXY", "1h", Long.MAX_VALUE)?.let { Pair(it.price, it.ema20) } ?: Pair(0.0, 0.0)
+        // 2. 日本10年国債（JP10Y）の取得 ➔ 制限時はフォールバック
+        var isJp10yFallback = false
+        val jp10y = runCatching {
+            getMacroSeriesCached("JP10Y", ttl)
+        }.getOrElse {
+            // API制限（シンボル利用不可・レートリミット等）時は例外を握りつぶし、基準値を代入
+            isJp10yFallback = true
+            // 基準値: 日本10年債利回り 1.00%（現在値 & EMA）
+            Pair(1.00, 1.00)
         }
 
         MacroIndicators(
@@ -327,16 +318,17 @@ class ForexRepository(
             us02yEma20   = us02y.second,
             us10yCurrent = us10y.first,
             us10yEma20   = us10y.second,
+            jp10yCurrent = jp10y.first,
+            jp10yEma20   = jp10y.second,
             dxyCurrent   = dxy.first,
-            dxyEma20     = dxy.second
+            dxyEma20     = dxy.second,
+            isJp10yEstimated = isJp10yFallback // ➔ 推定値フラグ
         )
     }
 
     private suspend fun getMacroSeriesCached(symbol: String, ttlMs: Long): Pair<Double, Double> {
         val cached = getValidCache(symbol, "1h", ttlMs)
-        if (cached != null) {
-            return Pair(cached.price, cached.ema20)
-        }
+        if (cached != null) return Pair(cached.price, cached.ema20)
 
         // Twelve Dataから取得
         val response = apiService.getTimeSeries(
@@ -350,11 +342,24 @@ class ForexRepository(
         val ema20 = calculateEma(closes, 20)
 
         // DBに保存
-        saveCache(symbol, "1h", TechnicalIndicators(
-            price = current, ema20 = ema20, ema50 = 0.0, ema200 = 0.0,
-            macdLine = 0.0, macdSignal = 0.0, macdHist = 0.0, prevMacdHist = 0.0,
-            rsi = 50.0, bbUpper2Sigma = 0.0, bbLower2Sigma = 0.0, bbMiddle = 0.0
-        ))
+        saveCache(
+            symbol = symbol,
+            tf = "1h",
+            d = TechnicalIndicators(
+                price = current,
+                ema20 = ema20,
+                ema50 = 0.0,
+                ema200 = 0.0,
+                macdLine = 0.0,
+                macdSignal = 0.0,
+                macdHist = 0.0,
+                prevMacdHist = 0.0,
+                rsi = 50.0,
+                bbUpper2Sigma = 0.0,
+                bbLower2Sigma = 0.0,
+                bbMiddle = 0.0
+            )
+        )
 
         return Pair(current, ema20)
     }

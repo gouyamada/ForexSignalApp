@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
         val repository = ForexRepository(
             apiService = apiService,
             cacheDao = database.forexCacheDao(),
-            apiKey = BuildConfig.TWELVE_DATA_API_KEY
+            apiKey = BuildConfig.TWELVE_DATA_API_KEY,
         )
 
         // 4. UIの描画

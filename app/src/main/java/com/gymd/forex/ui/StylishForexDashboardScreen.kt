@@ -31,6 +31,7 @@ import com.gymd.forex.domain.MacroBias
 import com.gymd.forex.domain.SignalDecision
 import com.gymd.forex.domain.TrendBias
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 // スタイリッシュ・ダークテーマ専用カラーパレット
 private val DarkBg = Color(0xFF0B0E14)
@@ -265,7 +266,7 @@ private fun RateHeaderCard(
 
             // 価格表示
             Text(
-                text = if (price > 0) String.format("%.3f", price) else "--.---",
+                text = if (price > 0) String.format(Locale.US, "%.3f", price) else "--.---",
                 color = TextPrimary,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Light,
@@ -297,7 +298,7 @@ private fun MacroMarketRadarCard(macro: MacroAnalysisResult) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "MACRO YIELD & DXY RADAR",
+                    text = "MACRO & YIELD SPREAD RADAR",
                     color = TextSecondary,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
@@ -313,15 +314,24 @@ private fun MacroMarketRadarCard(macro: MacroAnalysisResult) {
 
             Spacer(modifier = Modifier.height(14.dp))
 
+            // 4つの指標バッジ（2年債、10年債、DXY、日米スプレッド）
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                MacroPill(name = "US 2Y Yield", isBullish = macro.us02yRising, modifier = Modifier.weight(1f))
-                Spacer(modifier = Modifier.width(8.dp))
-                MacroPill(name = "US 10Y Yield", isBullish = macro.us10yRising, modifier = Modifier.weight(1f))
-                Spacer(modifier = Modifier.width(8.dp))
-                MacroPill(name = "DXY Index", isBullish = macro.dxyRising, modifier = Modifier.weight(1f))
+                MacroPill(name = "US 2Y", isBullish = macro.us02yRising, modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.width(6.dp))
+                MacroPill(name = "US 10Y", isBullish = macro.us10yRising, modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.width(6.dp))
+                MacroPill(name = "DXY", isBullish = macro.dxyRising, modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.width(6.dp))
+                // 日米金利差ピル（拡大: 緑、縮小: 赤）
+                MacroPill(
+                    name = "US-JP差",
+                    isBullish = macro.spreadWidening,
+                    modifier = Modifier.weight(1f),
+                    customLabel = if (macro.spreadWidening) "拡大" else "縮小",
+                )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -331,6 +341,44 @@ private fun MacroMarketRadarCard(macro: MacroAnalysisResult) {
                 color = TextSecondary,
                 fontSize = 12.sp,
                 lineHeight = 17.sp
+            )
+        }
+    }
+}
+
+@Suppress("SameParameterValue")
+@Composable
+private fun MacroPill(
+    name: String,
+    isBullish: Boolean,
+    modifier: Modifier = Modifier,
+    customLabel: String? = null,
+) {
+    val color = if (isBullish) SignalLongGreen else SignalShortRed
+    val text = customLabel ?: if (isBullish) "▲ 上昇" else "▼ 下降"
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = name,
+            fontSize = 11.sp,
+            color = TextPrimary,
+            fontWeight = FontWeight.Medium
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Surface(
+            color = color.copy(alpha = 0.12f),
+            shape = RoundedCornerShape(6.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = 0.3f))
+        ) {
+            Text(
+                text = text,
+                color = color,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
             )
         }
     }

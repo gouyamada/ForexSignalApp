@@ -1,5 +1,7 @@
 package com.gymd.forex.domain
 
+import java.util.Locale
+
 // --- Models ---
 data class TechnicalIndicators(
     val price: Double, val ema20: Double, val ema50: Double, val ema200: Double,
@@ -24,9 +26,15 @@ data class MacroIndicators(
     val us02yEma20: Double,
     val us10yCurrent: Double,
     val us10yEma20: Double,
+    val jp10yCurrent: Double,
+    val jp10yEma20: Double,
     val dxyCurrent: Double,
-    val dxyEma20: Double
-)
+    val dxyEma20: Double,
+    val isJp10yEstimated: Boolean = false // ➔ API制限による推定値かどうか
+) {
+    val currentSpread: Double get() = us10yCurrent - jp10yCurrent
+    val emaSpread: Double get() = us10yEma20 - jp10yEma20
+}
 
 enum class MacroBias {
     BULLISH_USD, // 米金利・DXY高（ドル高追従）
@@ -40,6 +48,9 @@ data class MacroAnalysisResult(
     val us02yRising: Boolean,
     val us10yRising: Boolean,
     val dxyRising: Boolean,
+    val spreadWidening: Boolean,
+    val currentSpreadValue: Double,
+    val isEstimated: Boolean, // UIで「(推定)」と表記するため
     val explanation: String
 )
 
@@ -54,16 +65,31 @@ class MacroEvaluator {
         if (us10yUp) score++ else score--
         if (dxyUp)   score++ else score--
 
+        // スプレッド拡大判定
+        val spreadWidening: Boolean
+        if (m.isJp10yEstimated) {
+            // JP10Yが取得できない場合は、US10Yの上昇度合いをスプレッド代理として評価
+            spreadWidening = us10yUp
+            // 推定値時は極端なバイアスを防ぐため配点を +1 / -1 に抑える
+            if (spreadWidening) score += 1 else score -= 1
+        } else {
+            spreadWidening = m.currentSpread >= m.emaSpread
+            if (spreadWidening) score += 2 else score -= 2
+        }
+
         val bias = when {
             score >= 2 -> MacroBias.BULLISH_USD
             score <= -2 -> MacroBias.BEARISH_USD
             else -> MacroBias.NEUTRAL
         }
 
+        val spreadFormatted = String.format("%.2f%%", m.currentSpread)
+        val note = if (m.isJp10yEstimated) " (※JP10Y制限のため基準値推定)" else ""
+
         val explanation = when (bias) {
-            MacroBias.BULLISH_USD -> "米2年・10年債利回りおよびDXYが上昇軌道。強力なドル高支援環境です。"
-            MacroBias.BEARISH_USD -> "米金利低下およびDXY失速により、ドル買いに極めて不利な環境です。"
-            MacroBias.NEUTRAL -> "金利動向とドル指数の歩調が合っておらず、方向感が拮抗しています。"
+            MacroBias.BULLISH_USD -> "日米金利差が拡大$note。米金利・DXY上昇も揃い、ドル買い有利な地合いです。"
+            MacroBias.BEARISH_USD -> "日米金利差が縮小$note。円キャリー巻き戻しやドル売り警戒の地合いです。"
+            MacroBias.NEUTRAL -> "日米金利差（$spreadFormatted）$note および各マクロ指標の方向感が拮抗しています。"
         }
 
         return MacroAnalysisResult(
@@ -72,6 +98,9 @@ class MacroEvaluator {
             us02yRising = us02yUp,
             us10yRising = us10yUp,
             dxyRising = dxyUp,
+            spreadWidening = spreadWidening,
+            currentSpreadValue = m.currentSpread,
+            isEstimated = m.isJp10yEstimated,
             explanation = explanation
         )
     }
